@@ -3,8 +3,10 @@ import { ref } from 'vue'
 import { movieService } from '../services/movieService'
 
 export const useMovieStore = defineStore('movie', () => {
-  
+  // State
   const movies = ref([])
+  const genres = ref([])
+  const selectedGenreId = ref(null)
   const currentMovie = ref(null)
   const similarMovies = ref([])
   const currentPage = ref(1)
@@ -13,13 +15,25 @@ export const useMovieStore = defineStore('movie', () => {
   const isLoading = ref(false)
   const error = ref(null)
 
-  // Actions
+  
 
-  // Kategoriye göre filmler
+  
+  const fetchGenres = async () => {
+    if (genres.value.length) return
+    try {
+      const response = await movieService.getGenres()
+      genres.value = response.data.genres || []
+    } catch (err) {
+      console.error('Türler alınamadı:', err)
+    }
+  }
+
+  
   const fetchMoviesByCategory = async (category = 'popular', page = 1) => {
     isLoading.value = true
     error.value = null
     currentPage.value = page
+    selectedGenreId.value = null
 
     try {
       let response
@@ -40,7 +54,7 @@ export const useMovieStore = defineStore('movie', () => {
       }
 
       movies.value = response.data.results || []
-      totalPages.value = Math.min(response.data.total_pages || 1, 500) 
+      totalPages.value = Math.min(response.data.total_pages || 1, 500)
       totalResults.value = response.data.total_results || 0
     } catch (err) {
       error.value = err.message || 'Filmler yüklenirken bir hata oluştu.'
@@ -50,7 +64,27 @@ export const useMovieStore = defineStore('movie', () => {
     }
   }
 
-  // Film arama
+  // Türe Göre Filtreleme
+  const fetchMoviesByGenre = async (genreId, page = 1) => {
+    isLoading.value = true
+    error.value = null
+    currentPage.value = page
+    selectedGenreId.value = genreId
+
+    try {
+      const response = await movieService.discoverByGenre(genreId, page)
+      movies.value = response.data.results || []
+      totalPages.value = Math.min(response.data.total_pages || 1, 500)
+      totalResults.value = response.data.total_results || 0
+    } catch (err) {
+      error.value = err.message || 'Türe göre filmler getirilemedi.'
+      movies.value = []
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Film Arama
   const searchMovies = async (query, page = 1) => {
     if (!query || !query.trim()) {
       movies.value = []
@@ -60,6 +94,7 @@ export const useMovieStore = defineStore('movie', () => {
     isLoading.value = true
     error.value = null
     currentPage.value = page
+    selectedGenreId.value = null
 
     try {
       const response = await movieService.searchMovies(query.trim(), page)
@@ -74,7 +109,7 @@ export const useMovieStore = defineStore('movie', () => {
     }
   }
 
-  // Film detay ve benzer filmleri çekme
+  // Film Detay ve Benzer Filmleri Çekme
   const fetchMovieDetails = async (movieId) => {
     isLoading.value = true
     error.value = null
@@ -88,7 +123,7 @@ export const useMovieStore = defineStore('movie', () => {
       ])
 
       currentMovie.value = detailRes.data
-      similarMovies.value = similarRes.data.results?.slice(0, 6) || [] // İlk 6 benzer film
+      similarMovies.value = similarRes.data.results?.slice(0, 6) || []
     } catch (err) {
       error.value = err.message || 'Film detayları alınamadı.'
     } finally {
@@ -98,6 +133,8 @@ export const useMovieStore = defineStore('movie', () => {
 
   return {
     movies,
+    genres,
+    selectedGenreId,
     currentMovie,
     similarMovies,
     currentPage,
@@ -105,7 +142,9 @@ export const useMovieStore = defineStore('movie', () => {
     totalResults,
     isLoading,
     error,
+    fetchGenres,
     fetchMoviesByCategory,
+    fetchMoviesByGenre,
     searchMovies,
     fetchMovieDetails
   }

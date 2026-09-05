@@ -6,6 +6,7 @@ import MovieCard from '../components/MovieCard.vue'
 import MovieCardSkeleton from '../components/MovieCardSkeleton.vue'
 import Pagination from '../components/Pagination.vue'
 import LandingHero from '../components/LandingHero.vue'
+import GenreFilterBar from '../components/GenreFilterBar.vue'
 
 const movieStore = useMovieStore()
 
@@ -21,12 +22,28 @@ const loadMovies = (page = 1) => {
   movieStore.fetchMoviesByCategory('popular', page)
 }
 
+const handlePageOrGenreChange = (page = 1) => {
+  if (movieStore.selectedGenreId) {
+    movieStore.fetchMoviesByGenre(movieStore.selectedGenreId, page)
+  } else {
+    movieStore.fetchMoviesByCategory('popular', page)
+  }
+}
+
+const handleGenreSelect = (genreId) => {
+  if (genreId) {
+    movieStore.fetchMoviesByGenre(genreId, 1)
+  } else {
+    movieStore.fetchMoviesByCategory('popular', 1)
+  }
+}
+
 onMounted(() => {
-  // Eğer oturum boyunca daha önce girildiyse tekrar landing gösterme
+// Eğer oturum boyunca daha önce girildiyse tekrar landing gösterme
   if (sessionStorage.getItem('movieflow_visited') === 'true') {
     showLanding.value = false
   }
-  loadMovies(1)
+  handlePageOrGenreChange(1)
 })
 </script>
 
@@ -49,6 +66,8 @@ onMounted(() => {
       </span>
     </div>
 
+    <!-- Tür Filtreleme Barı -->
+    <GenreFilterBar @select-genre="handleGenreSelect" />
     
     <div
       v-if="movieStore.error"
@@ -91,7 +110,7 @@ onMounted(() => {
       v-if="!movieStore.isLoading && movieStore.movies.length"
       :current-page="movieStore.currentPage"
       :total-pages="movieStore.totalPages"
-      @change-page="loadMovies"
+      @change-page="handlePageOrGenreChange"
     />
   </section>
 </template>

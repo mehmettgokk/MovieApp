@@ -45,5 +45,16 @@ export const movieService = {
   // Film Türleri
   getGenres() {
     return apiClient.get('/genre/movie/list')
+  },
+
+  // Türe Göre Filmleri Keşfet / Filtrele
+  discoverByGenre(genreId, page = 1) {
+    return apiClient.get('/discover/movie', {
+      params: {
+        with_genres: genreId,
+        page,
+        sort_by: 'popularity.desc'
+      }
+    })
   }
 }
